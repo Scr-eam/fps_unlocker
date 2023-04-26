@@ -15,7 +15,7 @@ fn main() -> Result<(), eframe::Error> {
         resizable: false,
         decorated: true,
         follow_system_theme: true,
-        max_window_size: Some(egui::vec2(300.0, 70.0)),
+        max_window_size: Some(egui::vec2(300.0, 110.0)),
         ..Default::default()
     };
 
@@ -29,6 +29,8 @@ fn main() -> Result<(), eframe::Error> {
 #[derive(Default)]
 struct Unlocker {
     picked_path: Option<String>,
+    max_fps: u16,
+    debloating: bool,
 }
 
 impl eframe::App for Unlocker {
@@ -36,8 +38,22 @@ impl eframe::App for Unlocker {
         
         egui::CentralPanel::default().show(ctx, |ui| {
 
+            let mut value = self.max_fps;
+            let mut debloating = self.debloating;
+
             let button = ui.add_sized([285., 25.], egui::Button::new("Install"));
             let manual = ui.add_sized([285., 25.], egui::Button::new("Manual Install"));
+
+            let debloat = ui.add(egui::Checkbox::new(&mut debloating, "Debloat (this can improve performance)"));
+            let max_fps = ui.add(egui::Slider::new(&mut value, 0..=10000).text("Maximum FPS"));
+            
+            if debloat.changed() {
+                self.debloating = debloating;
+            }
+
+            if max_fps.changed() {
+                self.max_fps = value;
+            }
 
             if button.clicked() {
                 let mut easy = Easy::new();
@@ -59,13 +75,17 @@ impl eframe::App for Unlocker {
                                 if client_settings.is_dir() {
                                     let mut client_app_settings = fs::File::create(current_version.join("ClientSettings").join("ClientAppSettings.json")).unwrap();
 
-                                    easy.write_function(move |data| {
-                                        client_app_settings.write_all(data).unwrap();
-                                        Ok(data.len())
-                                    }).unwrap();
+                                    if self.debloating {
+                                        easy.write_function(move |data| {
+                                            client_app_settings.write_all(data).unwrap();
+                                            Ok(data.len())
+                                        }).unwrap();
+                                        easy.perform().unwrap();
+                                        process::exit(0x0100)
+                                    }
 
-                                    easy.perform().unwrap();
-
+                                    let p = "{\n  \"DFIntTaskSchedulerTargetFps\": ".to_owned() +  &self.max_fps.to_string() + "\n}";
+                                    client_app_settings.write_all(p.as_bytes()).unwrap();
                                     process::exit(0x0100)
 
                                 } else {
@@ -73,13 +93,17 @@ impl eframe::App for Unlocker {
                                     
                                     let mut client_app_settings = fs::File::create(current_version.join("ClientSettings").join("ClientAppSettings.json")).unwrap();
 
-                                    easy.write_function(move |data| {
-                                        client_app_settings.write_all(data).unwrap();
-                                        Ok(data.len())
-                                    }).unwrap();
+                                    if self.debloating {
+                                        easy.write_function(move |data| {
+                                            client_app_settings.write_all(data).unwrap();
+                                            Ok(data.len())
+                                        }).unwrap();
+                                        easy.perform().unwrap();
+                                        process::exit(0x0100)
+                                    }
 
-                                    easy.perform().unwrap();
-
+                                    let p = "{\n  \"DFIntTaskSchedulerTargetFps\": ".to_owned() +  &self.max_fps.to_string() + "\n}";
+                                    client_app_settings.write_all(p.as_bytes()).unwrap();
                                     process::exit(0x0100)
                                 }
                             }
@@ -100,12 +124,18 @@ impl eframe::App for Unlocker {
 
                     // add client app settings
                     let mut client_app_settings = fs::File::create(path.join("ClientSettings").join("ClientAppSettings.json")).unwrap();
-                    easy.write_function(move |data| {
-                        client_app_settings.write_all(data).unwrap();
-                        Ok(data.len())
-                    }).unwrap();
-                    easy.perform().unwrap();
-                    
+
+                    if self.debloating {
+                        easy.write_function(move |data| {
+                            client_app_settings.write_all(data).unwrap();
+                            Ok(data.len())
+                        }).unwrap();
+                        easy.perform().unwrap();
+                        process::exit(0x0100)
+                    }
+
+                    let p = "{\n  \"DFIntTaskSchedulerTargetFps\": ".to_owned() +  &self.max_fps.to_string() + "\n}";
+                    client_app_settings.write_all(p.as_bytes()).unwrap();
                     process::exit(0x0100)
                 }
             }
