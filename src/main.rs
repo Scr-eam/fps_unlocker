@@ -41,7 +41,7 @@ impl eframe::App for Unlocker {
 
             if button.clicked() {
                 let mut easy = Easy::new();
-                easy.url("https://raw.githubusercontent.com/ScreamBirb/fps_unlocker/main/flags.json").unwrap();
+                easy.url("https://raw.githubusercontent.com/ScreamBirb/fps_unlocker/master/flags.json").unwrap();
                 
                 let version_request = minreq::get("http://setup.roblox.com/version.txt").send();
                 let binding = version_request.expect("failed to send request");
@@ -90,7 +90,7 @@ impl eframe::App for Unlocker {
 
             if manual.clicked() {
                 let mut easy = Easy::new();
-                easy.url("https://raw.githubusercontent.com/ScreamBirb/fps_unlocker/main/flags.json").unwrap();
+                easy.url("https://raw.githubusercontent.com/ScreamBirb/fps_unlocker/master/flags.json").unwrap();
                 if let Some(path) = rfd::FileDialog::new().pick_folder() {
 
                     self.picked_path = Some(path.display().to_string());
