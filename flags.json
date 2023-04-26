@@ -18,6 +18,7 @@
     "DFIntUserIdPlayerNameCacheSize": 200000000,
     "DFIntUserIdPlayerNameLifetimeSeconds": 604800,
     "FIntTaskSchedulerAutoThreadLimit": 16,
+    "DFIntTaskSchedulerTargetFps": 200000000,
     "FIntSSAOMipLevels": 0,
     "DFIntJoinDataCompressionLevel": 8,
     "DFIntClusterCompressionLevel": 8,
