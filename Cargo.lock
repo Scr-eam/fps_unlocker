@@ -941,6 +941,7 @@ dependencies = [
  "directories",
  "eframe",
  "egui",
+ "minreq",
  "rfd",
 ]
 
@@ -1436,6 +1437,15 @@ checksum = "e7810e0be55b428ada41041c41f32c9f1a42817901b4ccf45fa3d4b6561e74c7"
 dependencies = [
  "adler",
  "simd-adler32",
+]
+
+[[package]]
+name = "minreq"
+version = "2.7.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "41979ac2a5aa373c6e294b4a67fbe5e428e91a4cd0524376681f2bc6d872399b"
+dependencies = [
+ "log",
 ]
 
 [[package]]
