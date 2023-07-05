@@ -53,7 +53,7 @@ async fn main() -> Result<(), Error> {
         println!("> current roblox version not found!\n");
 
         if let Some(path) = rfd::FileDialog::new().pick_folder() {
-            println!("selected path {}\n", path.display());
+            println!("> selected path {}\n", path.display());
 
             fs::create_dir_all(path.join("ClientSettings")).unwrap();
             
