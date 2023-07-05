@@ -1,144 +1,79 @@
-#![windows_subsystem = "windows"]
+use std::{path::Path, fs};
+use directories::BaseDirs;
+use reqwest::Error;
+use std::io::{stdin, stdout, Write};
 
-use curl::easy::Easy;
-use directories::{BaseDirs};
-use std::io::{Write};
-use std::path::Path;
-use std::{fs, process};
+#[tokio::main]
+async fn main() -> Result<(), Error> {
 
-use eframe::egui;
-use rfd;
+    let mut max_fps = String::new();
 
-fn main() -> Result<(), eframe::Error> {
-    let options = eframe::NativeOptions {
-        drag_and_drop_support: true,
-        resizable: false,
-        decorated: true,
-        follow_system_theme: true,
-        max_window_size: Some(egui::vec2(300.0, 110.0)),
-        ..Default::default()
-    };
+    let version = reqwest::get("https://setup.rbxcdn.com/version")
+    .await?
+    .text()
+    .await?;
 
-    eframe::run_native(
-        "fps unlocker",
-        options,
-        Box::new(|_cc| Box::<Unlocker>::default()),
-    )
-}
+    if let Some(proj_dirs) = BaseDirs::new() {
+        let local_appdata = proj_dirs.cache_dir();
+        let directory = local_appdata.join("Roblox");
+        let roblox_path = Path::new(&directory);
 
-#[derive(Default)]
-struct Unlocker {
-    picked_path: Option<String>,
-    max_fps: u16,
-    debloating: bool,
-}
+        if !roblox_path.is_dir() {
+            println!("roblox installation not found");
+        }
 
-impl eframe::App for Unlocker {
-    fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
-        
-        egui::CentralPanel::default().show(ctx, |ui| {
+        let versions = roblox_path.join("Versions");
 
-            let mut value = self.max_fps;
-            let mut debloating = self.debloating;
+        if !versions.is_dir() {
+            println!("versions doesn't exist, try reinstalling your roblox");
+        }
 
-            let button = ui.add_sized([285., 25.], egui::Button::new("Install"));
-            let manual = ui.add_sized([285., 25.], egui::Button::new("Manual Install"));
+        let current_version = versions.join(version.as_str());
 
-            let debloat = ui.add(egui::Checkbox::new(&mut debloating, "Debloat (this can improve performance)"));
-            let max_fps = ui.add(egui::Slider::new(&mut value, 0..=10000).text("Maximum FPS"));
+        if current_version.is_dir() {
+            fs::create_dir_all(current_version.join("ClientSettings")).unwrap();
             
-            if debloat.changed() {
-                self.debloating = debloating;
-            }
+            let mut client_app_settings = fs::File::create(current_version.join("ClientSettings").join("ClientAppSettings.json")).unwrap();
 
-            if max_fps.changed() {
-                self.max_fps = value;
-            }
+            print!("> select your maxium fps: ");
 
-            if button.clicked() {
-                let mut easy = Easy::new();
-                easy.url("https://raw.githubusercontent.com/ScreamBirb/fps_unlocker/master/flags.json").unwrap();
-                
-                let version_request = minreq::get("http://setup.roblox.com/version.txt").send();
-                let binding = version_request.expect("failed to send request");
-                let version = binding.as_str().expect("failed to get version");
+            stdout().flush().unwrap();
 
-                if let Some(proj_dirs) = BaseDirs::new() {
-                    let local_appdata = proj_dirs.cache_dir();
-                    let directory = local_appdata.join("Roblox");
-                    let roblox_path = Path::new(&directory);
-                    if roblox_path.is_dir() {
-                        if roblox_path.join("Versions").is_dir() {
-                            let current_version = roblox_path.join("Versions").join(version);
-                            if current_version.is_dir() {
-                                let client_settings = current_version.join("ClientSettings");
-                                if client_settings.is_dir() {
-                                    let mut client_app_settings = fs::File::create(current_version.join("ClientSettings").join("ClientAppSettings.json")).unwrap();
+            stdin().read_line(&mut max_fps).expect("failed to read input");
 
-                                    if self.debloating {
-                                        easy.write_function(move |data| {
-                                            client_app_settings.write_all(data).unwrap();
-                                            Ok(data.len())
-                                        }).unwrap();
-                                        easy.perform().unwrap();
-                                        process::exit(0x0100)
-                                    }
+            let flag = "{\n  \"DFIntTaskSchedulerTargetFps\": ".to_owned() +  &max_fps + "}";
 
-                                    let p = "{\n  \"DFIntTaskSchedulerTargetFps\": ".to_owned() +  &self.max_fps.to_string() + "\n}";
-                                    client_app_settings.write_all(p.as_bytes()).unwrap();
-                                    process::exit(0x0100)
+            client_app_settings.write_all(flag.as_bytes()).unwrap();
 
-                                } else {
-                                    fs::create_dir_all(client_settings).unwrap();
-                                    
-                                    let mut client_app_settings = fs::File::create(current_version.join("ClientSettings").join("ClientAppSettings.json")).unwrap();
+            println!("\n> fps unlocker successfully unlocked your fps!");
 
-                                    if self.debloating {
-                                        easy.write_function(move |data| {
-                                            client_app_settings.write_all(data).unwrap();
-                                            Ok(data.len())
-                                        }).unwrap();
-                                        easy.perform().unwrap();
-                                        process::exit(0x0100)
-                                    }
+            std::process::abort();
+        }
 
-                                    let p = "{\n  \"DFIntTaskSchedulerTargetFps\": ".to_owned() +  &self.max_fps.to_string() + "\n}";
-                                    client_app_settings.write_all(p.as_bytes()).unwrap();
-                                    process::exit(0x0100)
-                                }
-                            }
-                        }
-                    }
-                }
-            }
+        println!("> current roblox version not found!\n");
 
-            if manual.clicked() {
-                let mut easy = Easy::new();
-                easy.url("https://raw.githubusercontent.com/ScreamBirb/fps_unlocker/master/flags.json").unwrap();
-                if let Some(path) = rfd::FileDialog::new().pick_folder() {
+        if let Some(path) = rfd::FileDialog::new().pick_folder() {
+            println!("selected path {}\n", path.display());
 
-                    self.picked_path = Some(path.display().to_string());
+            fs::create_dir_all(path.join("ClientSettings")).unwrap();
+            
+            let mut client_app_settings = fs::File::create(path.join("ClientSettings").join("ClientAppSettings.json")).unwrap();
 
-                    // create mew folder
-                    fs::create_dir_all(path.join("ClientSettings")).unwrap();
+            print!("> select your maxium fps: ");
 
-                    // add client app settings
-                    let mut client_app_settings = fs::File::create(path.join("ClientSettings").join("ClientAppSettings.json")).unwrap();
+            stdout().flush().unwrap();
 
-                    if self.debloating {
-                        easy.write_function(move |data| {
-                            client_app_settings.write_all(data).unwrap();
-                            Ok(data.len())
-                        }).unwrap();
-                        easy.perform().unwrap();
-                        process::exit(0x0100)
-                    }
+            stdin().read_line(&mut max_fps).expect("failed to read input");
 
-                    let p = "{\n  \"DFIntTaskSchedulerTargetFps\": ".to_owned() +  &self.max_fps.to_string() + "\n}";
-                    client_app_settings.write_all(p.as_bytes()).unwrap();
-                    process::exit(0x0100)
-                }
-            }
-        });
+            let flag = "{\n  \"DFIntTaskSchedulerTargetFps\": ".to_owned() +  &max_fps + "}";
+
+            client_app_settings.write_all(flag.as_bytes()).unwrap();
+
+            println!("\n> fps unlocker successfully unlocked your fps!");
+
+            std::process::abort();
+        }
     }
+
+    loop {}
 }
