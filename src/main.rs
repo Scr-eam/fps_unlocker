@@ -9,7 +9,7 @@ async fn main() -> Result<(), Error> {
 
     let mut max_fps = String::new();
 
-    let client_settings = reqwest::get("https://clientsettingscdn.roblox.com/v1/client-version/WindowsPlayer")
+    let client_settings = reqwest::get("https://clientsettingscdn.roblox.com/v1/client-version/WindowsPlayer") // why is setup.rbxcdn.version giving the wrong version..?
     .await?
     .json::<Value>()
     .await?;
