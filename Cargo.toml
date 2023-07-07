@@ -8,5 +8,6 @@ edition = "2021"
 [dependencies]
 directories = "5.0.0"
 reqwest = { version = "0.11.18", features = ["default", "blocking", "cookies", "json", "socks"] }
+serde_json = { version = "1.0", default-features = false, features = ["alloc"] }
 tokio = { version = "1", features = ["full"] }
 rfd = "0.11.3"

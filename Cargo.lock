@@ -324,6 +324,7 @@ dependencies = [
  "directories",
  "reqwest",
  "rfd",
+ "serde_json",
  "tokio",
 ]
 

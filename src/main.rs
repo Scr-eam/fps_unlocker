@@ -1,6 +1,7 @@
 use std::{path::Path, fs};
 use directories::BaseDirs;
 use reqwest::Error;
+use serde_json::Value;
 use std::io::{stdin, stdout, Write};
 
 #[tokio::main]
@@ -8,10 +9,12 @@ async fn main() -> Result<(), Error> {
 
     let mut max_fps = String::new();
 
-    let version = reqwest::get("https://setup.rbxcdn.com/version")
+    let client_settings = reqwest::get("https://clientsettingscdn.roblox.com/v1/client-version/WindowsPlayer")
     .await?
-    .text()
+    .json::<Value>()
     .await?;
+
+    let version = client_settings.get("clientVersionUpload").unwrap();
 
     if let Some(proj_dirs) = BaseDirs::new() {
         let local_appdata = proj_dirs.cache_dir();
@@ -28,14 +31,14 @@ async fn main() -> Result<(), Error> {
             println!("versions doesn't exist, try reinstalling your roblox");
         }
 
-        let current_version = versions.join(version.as_str());
+        let current_version = versions.join(version.as_str().unwrap());
 
         if current_version.is_dir() {
             fs::create_dir_all(current_version.join("ClientSettings")).unwrap();
             
             let mut client_app_settings = fs::File::create(current_version.join("ClientSettings").join("ClientAppSettings.json")).unwrap();
 
-            print!("> select your maxium fps: ");
+            print!("> select your maximum fps: ");
 
             stdout().flush().unwrap();
 
@@ -59,7 +62,7 @@ async fn main() -> Result<(), Error> {
             
             let mut client_app_settings = fs::File::create(path.join("ClientSettings").join("ClientAppSettings.json")).unwrap();
 
-            print!("> select your maxium fps: ");
+            print!("> select your maximum fps: ");
 
             stdout().flush().unwrap();
 
