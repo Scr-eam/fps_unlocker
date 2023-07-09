@@ -21,7 +21,7 @@ async fn main() -> Result<(), Error> {
     if let Some(client_version_upload) = client_settings.get("clientVersionUpload") {
         version = client_version_upload.as_str().unwrap().to_string();
     } else {
-        println!("> roblox client version not found, lets try using another api instead");
+        println!("> roblox client version not found, lets try using another api instead\n");
 
         let new_req = reqwest::get("https://setup.rbxcdn.com/version")
         .await?
