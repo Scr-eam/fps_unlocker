@@ -8,6 +8,11 @@ use serde_json::Value;
 async fn main() -> Result<(), Error> {
     let version;
 
+    /*
+        I should probably use registry instead of making a request,
+        this was my first thought on how I was gonna do it.
+    */
+
     let client_settings = reqwest::get("https://clientsettingscdn.roblox.com/v1/client-version/WindowsPlayer")
     .await?
     .json::<Value>()
@@ -16,7 +21,7 @@ async fn main() -> Result<(), Error> {
     if let Some(client_version_upload) = client_settings.get("clientVersionUpload") {
         version = client_version_upload.as_str().unwrap().to_string();
     } else {
-        println!("roblox client version not found, lets try using another api instead");
+        println!("> roblox client version not found, lets try using another api instead");
 
         let new_req = reqwest::get("https://setup.rbxcdn.com/version")
         .await?
@@ -32,7 +37,7 @@ async fn main() -> Result<(), Error> {
         let roblox_path = Path::new(&directory);
 
         if !roblox_path.is_dir() {
-            println!("roblox installation not found, try reinstalling roblox if already installed");
+            println!("> roblox installation not found, try reinstalling roblox if already installed");
 
             thread::sleep(time::Duration::from_secs(2));
 
@@ -42,7 +47,7 @@ async fn main() -> Result<(), Error> {
         let versions = roblox_path.join("Versions");
 
         if !versions.is_dir() {
-            println!("versions doesn't exist, try reinstalling roblox");
+            println!("> versions doesn't exist, try reinstalling roblox");
 
             thread::sleep(time::Duration::from_secs(2));
 
@@ -53,7 +58,7 @@ async fn main() -> Result<(), Error> {
 
         if !current_version.is_dir() {
 
-            println!("unable to find roblox version, please select one instead\n");
+            println!("> unable to find roblox version, please select one instead\n");
 
             if let Some(path) = rfd::FileDialog::new().pick_folder() {
                 println!("> selected path {}\n", path.display());
