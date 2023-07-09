@@ -1,20 +1,30 @@
-use std::{path::Path, fs};
+use std::{fs, io::{self, stdin, stdout, Write}, path::Path, {thread, time}};
+
 use directories::BaseDirs;
-use reqwest::Error;
+use reqwest::{Error};
 use serde_json::Value;
-use std::io::{stdin, stdout, Write};
 
 #[tokio::main]
 async fn main() -> Result<(), Error> {
+    let version;
 
-    let mut max_fps = String::new();
-
-    let client_settings = reqwest::get("https://clientsettingscdn.roblox.com/v1/client-version/WindowsPlayer") // why is setup.rbxcdn.version giving the wrong version..?
+    let client_settings = reqwest::get("https://clientsettingscdn.roblox.com/v1/client-version/WindowsPlayer")
     .await?
     .json::<Value>()
     .await?;
 
-    let version = client_settings.get("clientVersionUpload").unwrap();
+    if let Some(client_version_upload) = client_settings.get("clientVersionUpload") {
+        version = client_version_upload.as_str().unwrap().to_string();
+    } else {
+        println!("roblox client version not found, lets try using another api instead");
+
+        let new_req = reqwest::get("https://setup.rbxcdn.com/version")
+        .await?
+        .text()
+        .await?;
+
+        version = new_req;
+    };
 
     if let Some(proj_dirs) = BaseDirs::new() {
         let local_appdata = proj_dirs.cache_dir();
@@ -22,61 +32,72 @@ async fn main() -> Result<(), Error> {
         let roblox_path = Path::new(&directory);
 
         if !roblox_path.is_dir() {
-            println!("roblox installation not found");
+            println!("roblox installation not found, try reinstalling roblox if already installed");
+
+            thread::sleep(time::Duration::from_secs(2));
+
+            return Ok(());
         }
 
         let versions = roblox_path.join("Versions");
 
         if !versions.is_dir() {
-            println!("versions doesn't exist, try reinstalling your roblox");
+            println!("versions doesn't exist, try reinstalling roblox");
+
+            thread::sleep(time::Duration::from_secs(2));
+
+            return Ok(());
         }
 
-        let current_version = versions.join(version.as_str().unwrap());
+        let current_version = versions.join(version);
 
-        if current_version.is_dir() {
-            fs::create_dir_all(current_version.join("ClientSettings")).unwrap();
-            
-            let mut client_app_settings = fs::File::create(current_version.join("ClientSettings").join("ClientAppSettings.json")).unwrap();
+        if !current_version.is_dir() {
 
-            print!("> select your maximum fps: ");
+            println!("unable to find roblox version, please select one instead\n");
 
-            stdout().flush().unwrap();
+            if let Some(path) = rfd::FileDialog::new().pick_folder() {
+                println!("> selected path {}\n", path.display());
 
-            stdin().read_line(&mut max_fps).expect("failed to read input");
+                apply_fps_flag(&path).unwrap();
 
-            let flag = "{\n  \"DFIntTaskSchedulerTargetFps\": ".to_owned() +  &max_fps + "}";
+                return Ok(());
+            } else {
+                println!("> no path was selected");
 
-            client_app_settings.write_all(flag.as_bytes()).unwrap();
-
-            println!("\n> fps unlocker successfully unlocked your fps!");
-
-            std::process::abort();
+                thread::sleep(time::Duration::from_secs(2));
+                
+                return Ok(());
+            }
         }
 
-        println!("> current roblox version not found!\n");
-
-        if let Some(path) = rfd::FileDialog::new().pick_folder() {
-            println!("> selected path {}\n", path.display());
-
-            fs::create_dir_all(path.join("ClientSettings")).unwrap();
-            
-            let mut client_app_settings = fs::File::create(path.join("ClientSettings").join("ClientAppSettings.json")).unwrap();
-
-            print!("> select your maximum fps: ");
-
-            stdout().flush().unwrap();
-
-            stdin().read_line(&mut max_fps).expect("failed to read input");
-
-            let flag = "{\n  \"DFIntTaskSchedulerTargetFps\": ".to_owned() +  &max_fps + "}";
-
-            client_app_settings.write_all(flag.as_bytes()).unwrap();
-
-            println!("\n> fps unlocker successfully unlocked your fps!");
-
-            std::process::abort();
-        }
+        apply_fps_flag(&current_version).unwrap();
     }
 
-    loop {}
+    Ok(())
+}
+
+fn apply_fps_flag(path: &Path) -> io::Result<()> {
+    let mut max_fps = String::new();
+
+    let client_settings = path.join("ClientSettings");
+
+    fs::create_dir_all(&client_settings)?;
+
+    let mut client_app_settings = fs::File::create(&client_settings.join("ClientAppSettings.json"))?;
+
+    print!("> select your maximum fps: ");
+
+    stdout().flush()?;
+
+    stdin().read_line(&mut max_fps)?;
+    
+    let flag = format!("{{\n  \"DFIntTaskSchedulerTargetFps\": {} }}", max_fps);
+
+    client_app_settings.write_all(flag.as_bytes())?;
+    
+    println!("\n> fps unlocker successfully unlocked your fps!");
+
+    thread::sleep(time::Duration::from_secs(2));
+    
+    Ok(())
 }
