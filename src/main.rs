@@ -6,7 +6,6 @@ use serde_json::Value;
 
 #[tokio::main]
 async fn main() -> Result<(), Error> {
-    let version;
 
     /*
         I should probably use registry instead of making a request,
@@ -18,8 +17,8 @@ async fn main() -> Result<(), Error> {
     .json::<Value>()
     .await?;
 
-    if let Some(client_version_upload) = client_settings.get("clientVersionUpload") {
-        version = client_version_upload.as_str().unwrap().to_string();
+    let version: String = if let Some(client_version_upload) = client_settings.get("clientVersionUpload") {
+        client_version_upload.as_str().unwrap().to_string()
     } else {
         println!("> roblox client version not found, lets try using another api instead\n");
 
@@ -28,7 +27,7 @@ async fn main() -> Result<(), Error> {
         .text()
         .await?;
 
-        version = new_req;
+        new_req
     };
 
     if let Some(proj_dirs) = BaseDirs::new() {
