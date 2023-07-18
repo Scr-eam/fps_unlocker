@@ -7,12 +7,6 @@ use winreg::{enums::HKEY_CURRENT_USER, RegKey};
 
 #[tokio::main]
 async fn main() -> Result<(), Error> {
-
-    /*
-        I should probably use registry instead of making a request,
-        this was my first thought on how I was gonna do it.
-    */
-
     let client_settings = reqwest::get("https://clientsettingscdn.roblox.com/v1/client-version/WindowsPlayer")
     .await?
     .json::<Value>()
