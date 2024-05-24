@@ -7,21 +7,11 @@ use winreg::{enums::HKEY_CURRENT_USER, RegKey};
 
 #[tokio::main]
 async fn main() -> Result<(), Error> {
-    let client_settings = reqwest::get("https://clientsettingscdn.roblox.com/v1/client-version/WindowsPlayer")
-    .await?
-    .json::<Value>()
-    .await?;
+    let hkey_current_user = RegKey::predef(HKEY_CURRENT_USER);
 
-    let version: String = if let Some(client_version_upload) = client_settings.get("clientVersionUpload") {
-        client_version_upload.as_str().unwrap().to_string()
-    } else {
-        println!("> roblox client version not found, lets try checking your registry instead\n");
-        
-        let hkey_current_user = RegKey::predef(HKEY_CURRENT_USER);
-        let roblox_key = hkey_current_user.open_subkey("SOFTWARE\\ROBLOX Corporation\\Environments\\roblox-player");
+    let roblox_key: RegKey = hkey_current_user.open_subkey("SOFTWARE\\ROBLOX Corporation\\Environments\\roblox-player").expect("unable to find roblox player registry");
 
-        roblox_key.expect("unable to find roblox player registry").get_value("version").unwrap()
-    };
+    let version: String = roblox_key.get_value("version").unwrap();
 
     println!("> found roblox version! {}\n", version);
 
@@ -90,7 +80,7 @@ fn apply_fps_flag(path: &Path) -> io::Result<()> {
 
     stdin().read_line(&mut max_fps)?;
     
-    let flag = format!("{{\n  \"DFIntTaskSchedulerTargetFps\": {} }}", max_fps);
+    let flag = format!("{{\n  \"DFIntTaskSchedulerTargetFps\": {},  \n  \"FFlagEnableInGameMenuChrome\": true, \n  \"FFlagGameBasicSettingsFramerateCap2\": true}}", max_fps);
 
     client_app_settings.write_all(flag.as_bytes())?;
     
